@@ -60,3 +60,8 @@ def test_commit_roundtrip_keeps_multiline_headers():
 def test_subject_folds_first_paragraph():
     c = Commit("a" * 40, [], "x", "x", "fix the thing\nreally this time\n\nlonger story\n")
     assert c.subject == "fix the thing really this time"
+
+
+def test_subject_keeps_inner_spacing_like_git():
+    c = Commit("a" * 40, [], "x", "x", "\n\ntwo  spaces   \nnext\n  \nbody\n")
+    assert c.subject == "two  spaces next"

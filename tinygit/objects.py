@@ -98,8 +98,18 @@ class Commit:
 
     @property
     def subject(self) -> str:
-        # git's "subject" is the whole first paragraph folded onto one line
-        return " ".join(self.message.strip().split("\n\n")[0].split())
+        # git's "subject" is the whole first paragraph folded onto one line.
+        # mirrors format_subject() in pretty.c: skip leading blank lines,
+        # rstrip each line, stop at the first blank one, join with spaces.
+        lines = []
+        for line in self.message.split("\n"):
+            line = line.rstrip()
+            if not line:
+                if lines:
+                    break
+                continue
+            lines.append(line)
+        return " ".join(lines)
 
     @classmethod
     def decode(cls, body: bytes) -> "Commit":
