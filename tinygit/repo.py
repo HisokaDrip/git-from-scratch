@@ -265,6 +265,19 @@ class Repo:
     def index_path(self) -> Path:
         return self.gitdir / "index"
 
+    def _looks_clean(self, e: IndexEntry, st: os.stat_result) -> bool:
+        # the "racy git" problem: a file edited within the same timestamp tick
+        # as the index was written has matching stat data but new contents.
+        # git's fix is to distrust any entry whose mtime isn't strictly older
+        # than the index file itself, so we do the same.
+        if not e.stat_matches(st):
+            return False
+        try:
+            idx = self.index_path.stat()
+        except FileNotFoundError:
+            return False
+        return (e.mtime_s, e.mtime_ns) < (int(idx.st_mtime), idx.st_mtime_ns % 1_000_000_000)
+
     def add(self, paths: list[str]) -> list[str]:
         index = read_index(self.index_path)
         all_files = self.walk()
@@ -280,7 +293,7 @@ class Repo:
             for f in matched:
                 old = index.get(f)
                 st = (self.root / f).lstat()
-                if old and old.stat_matches(st):
+                if old and self._looks_clean(old, st):
                     continue
                 sha, st = self._hash_file(f, write=True)
                 index[f] = IndexEntry.from_stat(f, sha, st)
@@ -408,7 +421,7 @@ class Repo:
                 unstaged.append(f"deleted:    {path}")
                 continue
             st = p.lstat()
-            if e.stat_matches(st):
+            if self._looks_clean(e, st):
                 continue
             sha, st = self._hash_file(path, write=False)
             if sha != e.sha or e.mode != IndexEntry.from_stat(path, sha, st).mode:

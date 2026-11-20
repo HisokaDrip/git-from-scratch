@@ -131,7 +131,7 @@ def cmd_diff(a):
             f = repo.root / p
             if not f.exists():
                 pairs.append((p, e.sha, None))
-            elif not e.stat_matches(f.lstat()) and obj.hash_object(b"blob", f.read_bytes()) != e.sha:
+            elif not repo._looks_clean(e, f.lstat()) and obj.hash_object(b"blob", f.read_bytes()) != e.sha:
                 pairs.append((p, e.sha, "worktree"))
         def load_new(p, s):
             if s is None:
