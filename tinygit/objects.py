@@ -96,6 +96,11 @@ class Commit:
             lines.append(f"{k} " + v.replace("\n", "\n "))
         return ("\n".join(lines) + "\n\n" + self.message).encode()
 
+    @property
+    def subject(self) -> str:
+        # git's "subject" is the whole first paragraph folded onto one line
+        return " ".join(self.message.strip().split("\n\n")[0].split())
+
     @classmethod
     def decode(cls, body: bytes) -> "Commit":
         headers, message = parse_headers(body)
